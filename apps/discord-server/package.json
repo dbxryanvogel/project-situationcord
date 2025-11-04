@@ -6,7 +6,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "lint": "echo 'Discord server lint script'"
+    "lint": "echo 'Discord server lint script'",
+    "heroku-postbuild": "npm run build"
   },
   "dependencies": {
     "discord.js": "^14.14.1",

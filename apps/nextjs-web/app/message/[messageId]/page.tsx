@@ -64,6 +64,7 @@ async function getMessageData(messageId: string) {
   return result[0];
 }
 
+// Metadata generation is public (no auth required) so social media bots can fetch OG images
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { messageId } = await params;
   const data = await getMessageData(messageId);

@@ -347,9 +347,7 @@ async function sendToCustomerIO(
       // Flatten all fields to the event root for Customer.io
       message_id: payload.message.id,
       message_content: payload.message.content,
-      message_url: payload.message.threadId
-        ? `https://discord.com/channels/${payload.message.guild?.id}/${payload.message.threadId}/${payload.message.id}`
-        : `https://discord.com/channels/${payload.message.guild?.id}/${payload.message.channelId}/${payload.message.id}`,
+      message_url: `https://situationcord.vercel.app/message/${payload.message.id}`,
 
       // Author details
       author_id: payload.message.author.id,

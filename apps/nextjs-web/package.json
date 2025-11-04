@@ -17,7 +17,7 @@
     "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
-    "@situationcord/shared-types": "workspace:*",
+    "@situationcord/shared-types": "*",
     "@workos-inc/authkit-nextjs": "^2.11.0",
     "ai": "^5.0.87",
     "class-variance-authority": "^0.7.1",

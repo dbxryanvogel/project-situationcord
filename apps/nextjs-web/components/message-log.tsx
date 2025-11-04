@@ -388,14 +388,14 @@ export function MessageLog({ initialMessages }: MessageLogProps) {
                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                                 : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                             }`}>
-                              <HelpCircle className="h-3 w-3" />
-                              <span>Question</span>
+                            <HelpCircle className="h-3 w-3" />
+                            <span>Question</span>
                               {hasAnswers && (
                                 <span className="ml-0.5 font-medium">
                                   ✓ {answers.length} {answers.length === 1 ? 'answer' : 'answers'}
                                 </span>
                               )}
-                            </div>
+                          </div>
                           );
                         })()}
                         {message.analysis.isAnswer && (

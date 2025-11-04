@@ -1,0 +1,299 @@
+---
+alwaysApply: true
+---
+
+
+# Workflow DevKit Best Practices
+
+## Overview
+Use these rules when working with Vercel Workflow Development Kit for building durable, async workflows.
+
+**Official Documentation**: https://useworkflow.dev/docs
+
+## Core Directives
+
+### Workflow Functions
+- Use `"use workflow"` directive at the start of workflow orchestrator functions
+- Workflow functions MUST be deterministic and replay-safe
+- Can only pass serializable data between workflows and steps
+- Never use Node.js modules directly (fs, crypto, etc.) in workflow functions
+- Never read/write streams directly in workflow context
+
+```typescript
+export async function myWorkflow(data: SerializableData) {
+  "use workflow";
+  
+  const result = await myStep(data);
+  return result;
+}
+```
+
+### Step Functions
+- Use `"use step"` directive for isolated units of work
+- Steps can use full Node.js APIs, database calls, external APIs
+- Steps automatically retry on uncaught errors
+- Use `FatalError` to skip retries for non-recoverable errors
+- Use `RetryableError` with `retryAfter` for custom retry timing
+
+```typescript
+import { FatalError, RetryableError } from 'workflow';
+
+async function myStep(data: any) {
+  "use step";
+  
+  const response = await fetch('https://api.example.com/data');
+  
+  if (response.status === 404) {
+    throw new FatalError('Resource not found');
+  }
+  
+  if (response.status >= 500) {
+    throw new RetryableError('Server error', { retryAfter: '30s' });
+  }
+  
+  return response.json();
+}
+```
+
+## Next.js Configuration
+
+### Required Setup
+1. Wrap `next.config.ts` with `withWorkflow()`:
+```typescript
+import { withWorkflow } from 'workflow/next';
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = { /* config */ };
+export default withWorkflow(nextConfig);
+```
+
+2. Exclude workflow routes from middleware:
+```typescript
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|.well-known/workflow).*)',
+  ],
+};
+```
+
+### API Route Handlers
+- Import `start` from `'workflow/api'` to trigger workflows
+- Always `await start()` even though it returns immediately
+- Pass only serializable data as arguments
+
+```typescript
+import { start } from 'workflow/api';
+import { myWorkflow } from '@/workflows/my-workflow';
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  const data = await request.json();
+  
+  // Start workflow (non-blocking, but await it)
+  await start(myWorkflow, [data]);
+  
+  return NextResponse.json({ success: true });
+}
+```
+
+## Serialization Rules
+
+### ✅ Allowed Types
+- Primitives: string, number, boolean, null, undefined
+- Plain objects and arrays
+- ReadableStream (pass between steps, don't use in workflow)
+- Dates (converted to ISO strings)
+- JSON-serializable data
+
+### ❌ Not Allowed
+- Functions or callbacks
+- Class instances (pass plain objects instead)
+- Symbols
+- WeakMap/WeakSet
+- Circular references
+- Node.js built-in objects (Buffer, etc.)
+
+```typescript
+// ❌ BAD - Class instance
+await myStep(new User('alice'));
+
+// ✅ GOOD - Plain object
+await myStep({ name: 'alice' });
+```
+
+## Error Handling
+
+### Default Retry Behavior
+```typescript
+async function apiCall(url: string) {
+  "use step";
+  
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    // Automatically retries on uncaught error
+    throw new Error('API call failed');
+  }
+  
+  return response.json();
+}
+
+apiCall.maxRetries = 5; // Customize retry count
+```
+
+### Custom Retry Timing
+```typescript
+import { RetryableError, getStepMetadata } from 'workflow';
+
+async function smartRetry() {
+  "use step";
+  
+  const { attempt } = getStepMetadata();
+  
+  if (shouldRetry) {
+    // Exponential backoff
+    throw new RetryableError('Retry needed', {
+      retryAfter: attempt ** 2, // seconds
+    });
+  }
+}
+```
+
+### Fatal Errors
+```typescript
+import { FatalError } from 'workflow';
+
+async function validateData(data: any) {
+  "use step";
+  
+  if (!data.email.includes('@')) {
+    // Don't retry - data is invalid
+    throw new FatalError('Invalid email format');
+  }
+}
+```
+
+## Control Flow Patterns
+
+### Sequential Execution
+```typescript
+export async function sequential() {
+  "use workflow";
+  
+  const a = await step1();
+  const b = await step2(a);
+  const c = await step3(b);
+  
+  return c;
+}
+```
+
+### Parallel Execution
+```typescript
+export async function parallel() {
+  "use workflow";
+  
+  const [result1, result2, result3] = await Promise.all([
+    step1(),
+    step2(),
+    step3(),
+  ]);
+  
+  return { result1, result2, result3 };
+}
+```
+
+### Conditional Execution
+```typescript
+export async function conditional(type: string) {
+  "use workflow";
+  
+  if (type === 'A') {
+    return await stepA();
+  } else {
+    return await stepB();
+  }
+}
+```
+
+## Long-Running Workflows
+
+### Sleep/Delays
+```typescript
+import { sleep } from 'workflow';
+
+export async function delayedWorkflow() {
+  "use workflow";
+  
+  await processStep();
+  
+  // Sleep for days without consuming resources
+  await sleep('3d');
+  
+  await followUpStep();
+}
+```
+
+### Webhooks (Wait for External Events)
+```typescript
+import { createWebhook } from 'workflow';
+
+export async function webhookWorkflow() {
+  "use workflow";
+  
+  const webhook = createWebhook();
+  
+  // Trigger external service with callback URL
+  await notifyExternalService(webhook.url);
+  
+  // Wait for external event
+  const request = await webhook;
+  const data = await request.json();
+  
+  return processData(data);
+}
+```
+
+## Common Mistakes to Avoid
+
+1. **Don't use Node.js modules in workflow functions** - Use step functions instead
+2. **Don't forget to await start()** - Even though it returns immediately
+3. **Don't pass functions or class instances** - Only plain serializable data
+4. **Don't interact with streams in workflow context** - Pass them to steps
+5. **Don't forget middleware exclusion** - Add `.well-known/workflow` to matcher exclusions
+6. **Don't use non-deterministic code in workflows** - Math.random(), Date.now(), etc. should be in steps
+
+## Observability
+
+### Inspect Workflow Runs
+```bash
+# View workflow runs
+npx workflow inspect runs
+
+# Web UI
+npx workflow inspect runs --web
+```
+
+### Debug Logging
+```typescript
+import { start } from 'workflow/api';
+
+await start(myWorkflow, [data], {
+  deploymentId: 'debug-run-123'
+});
+```
+
+## TypeScript Configuration (Optional)
+
+Add to `tsconfig.json` for better IntelliSense:
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "workflow"
+      }
+    ]
+  }
+}
+```

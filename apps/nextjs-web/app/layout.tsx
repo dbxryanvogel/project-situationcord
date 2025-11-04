@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Restricted",
-  description: "Restricted access application",
+  title: "SituationCord",
+  description: "SituationCord is a platform for managing and analyzing Discord message.",
 };
 
 export default function RootLayout({

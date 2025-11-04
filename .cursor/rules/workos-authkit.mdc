@@ -1,0 +1,456 @@
+---
+alwaysApply: true
+---
+
+# WorkOS AuthKit Next.js Best Practices
+
+## Overview
+Use these rules when working with WorkOS AuthKit for authentication in Next.js App Router applications.
+
+**Official Documentation**: https://workos.com/docs/user-management/nextjs
+
+## Environment Setup
+
+### Required Environment Variables
+```bash
+# .env.local
+WORKOS_CLIENT_ID="client_..."           # From WorkOS dashboard
+WORKOS_API_KEY="sk_test_..."            # From WorkOS dashboard
+WORKOS_COOKIE_PASSWORD="<32+ chars>"    # Generate secure password
+NEXT_PUBLIC_WORKOS_REDIRECT_URI="http://localhost:3000/callback"
+```
+
+**Important**: 
+- Cookie password must be at least 32 characters
+- Redirect URI must be configured in WorkOS dashboard
+- Use `NEXT_PUBLIC_` prefix for client-side accessible variables
+
+## Middleware Configuration
+
+### Basic Setup
+```typescript
+// middleware.ts
+import { authkitMiddleware } from '@workos-inc/authkit-nextjs';
+
+export default authkitMiddleware();
+
+// Protect specific routes
+export const config = {
+  matcher: ['/', '/dashboard/:path*', '/admin/:path*']
+};
+```
+
+### Secure by Default (Recommended)
+```typescript
+// middleware.ts
+import { authkitMiddleware } from '@workos-inc/authkit-nextjs';
+
+export default authkitMiddleware({
+  middlewareAuth: {
+    enabled: true,
+    unauthenticatedPaths: ['/', '/about', '/pricing', '/signin'],
+  },
+});
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico (favicon)
+     * - .well-known/workflow (if using Workflow DevKit)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.well-known/workflow).*)',
+  ],
+};
+```
+
+### Custom Middleware Logic
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { authkit } from '@workos-inc/authkit-nextjs';
+
+export default async function middleware(request: NextRequest) {
+  const {
+    session,
+    headers: authkitHeaders,
+    authorizationUrl,
+  } = await authkit(request, {
+    debug: true,
+  });
+
+  const { pathname } = new URL(request.url);
+
+  // Custom logic for protected routes
+  if (pathname.startsWith('/admin') && !session.user) {
+    const response = NextResponse.redirect(authorizationUrl);
+    
+    // IMPORTANT: Always forward AuthKit headers
+    for (const [key, value] of authkitHeaders) {
+      if (key.toLowerCase() === 'set-cookie') {
+        response.headers.append(key, value);
+      } else {
+        response.headers.set(key, value);
+      }
+    }
+    
+    return response;
+  }
+
+  const response = NextResponse.next({
+    request: { headers: new Headers(request.headers) },
+  });
+
+  // Forward headers on successful auth
+  for (const [key, value] of authkitHeaders) {
+    if (key.toLowerCase() === 'set-cookie') {
+      response.headers.append(key, value);
+    } else {
+      response.headers.set(key, value);
+    }
+  }
+
+  return response;
+}
+
+export const config = { matcher: ['/', '/admin/:path*'] };
+```
+
+## OAuth Callback Handler
+
+### Basic Callback
+```typescript
+// app/auth/callback/route.ts
+import { handleAuth } from '@workos-inc/authkit-nextjs';
+
+export const GET = handleAuth();
+```
+
+### Advanced Callback with Hooks
+```typescript
+// app/auth/callback/route.ts
+import { handleAuth } from '@workos-inc/authkit-nextjs';
+
+export const GET = handleAuth({
+  returnPathname: '/dashboard',
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+  
+  onSuccess: async ({ user, oauthTokens, authenticationMethod, organizationId, state }) => {
+    // Persist OAuth tokens from upstream provider
+    if (oauthTokens) {
+      await saveToDatabase({
+        userId: user.id,
+        accessToken: oauthTokens.accessToken,
+        refreshToken: oauthTokens.refreshToken,
+      });
+    }
+
+    // Track authentication method (only available on initial login)
+    if (authenticationMethod) {
+      console.log(`User ${user.email} authenticated via ${authenticationMethod}`);
+      await trackAuthMethod(user.id, authenticationMethod);
+    }
+
+    // Use custom state passed through auth flow
+    if (state?.teamId) {
+      await addUserToTeam(user.id, state.teamId);
+    }
+
+    console.log(`User ${user.email} logged in to org ${organizationId}`);
+  },
+  
+  onError: async ({ error, request }) => {
+    console.error('Authentication failed:', error);
+    return new Response('Authentication failed', { status: 401 });
+  },
+});
+```
+
+## Server-Side Authentication
+
+### Server Components
+```typescript
+// app/dashboard/page.tsx
+import { withAuth, getSignInUrl, signOut } from '@workos-inc/authkit-nextjs';
+
+export default async function DashboardPage() {
+  // Optional auth - returns user or null
+  const { user, organizationId, role, permissions } = await withAuth();
+
+  if (!user) {
+    const signInUrl = await getSignInUrl();
+    return <a href={signInUrl}>Sign In</a>;
+  }
+
+  return (
+    <div>
+      <h1>Welcome {user.firstName} {user.lastName}</h1>
+      <p>Email: {user.email}</p>
+      <p>Organization: {organizationId}</p>
+      <p>Role: {role}</p>
+      
+      <form action={async () => {
+        'use server';
+        await signOut();
+      }}>
+        <button type="submit">Sign Out</button>
+      </form>
+    </div>
+  );
+}
+```
+
+### Required Authentication
+```typescript
+import { withAuth } from '@workos-inc/authkit-nextjs';
+import { redirect } from 'next/navigation';
+
+export default async function ProtectedPage() {
+  const { user } = await withAuth();
+
+  if (!user) {
+    redirect('/signin');
+  }
+
+  // User is guaranteed to be authenticated here
+  return <div>Protected content for {user.email}</div>;
+}
+```
+
+### Server Actions
+```typescript
+// app/actions.ts
+'use server';
+
+import { withAuth } from '@workos-inc/authkit-nextjs';
+
+export async function updateProfile(formData: FormData) {
+  const { user } = await withAuth();
+
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  // Process form data for authenticated user
+  const name = formData.get('name') as string;
+  await updateUserProfile(user.id, name);
+}
+```
+
+## Client-Side Authentication
+
+### Enable Client-Side Auth
+```typescript
+// app/layout.tsx
+import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components';
+
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <AuthKitProvider
+          onSessionExpired={() => {
+            console.log('Session expired');
+            window.location.href = '/session-expired';
+          }}
+        >
+          {children}
+        </AuthKitProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Using useAuth Hook
+```typescript
+'use client';
+
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
+
+export function UserProfile() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <a href="/signin">Sign In</a>;
+  }
+
+  return (
+    <div>
+      <p>{user.email}</p>
+      <p>{user.firstName} {user.lastName}</p>
+    </div>
+  );
+}
+```
+
+## Advanced Configuration
+
+### Sign-Up Paths
+```typescript
+import { authkitMiddleware } from '@workos-inc/authkit-nextjs';
+
+export default authkitMiddleware({
+  signUpPaths: ['/signup', '/register', '/onboard'],
+});
+```
+
+### Eager Authentication
+```typescript
+// Enables synchronous access to tokens on initial page load
+import { authkitMiddleware } from '@workos-inc/authkit-nextjs';
+
+export default authkitMiddleware({
+  eagerAuth: true,
+});
+```
+
+### Custom Redirect URI (for preview deployments)
+```typescript
+import { authkitMiddleware } from '@workos-inc/authkit-nextjs';
+
+export default authkitMiddleware({
+  redirectUri: process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}/callback`
+    : 'http://localhost:3000/callback',
+});
+```
+
+## Authentication Utilities
+
+### Get Sign-In URL
+```typescript
+import { getSignInUrl } from '@workos-inc/authkit-nextjs';
+
+const signInUrl = await getSignInUrl();
+// Returns: URL string for redirecting to sign-in
+```
+
+### Sign Out
+```typescript
+import { signOut } from '@workos-inc/authkit-nextjs';
+
+// In Server Action or Route Handler
+await signOut();
+```
+
+### Get User Info
+```typescript
+import { withAuth } from '@workos-inc/authkit-nextjs';
+
+const { 
+  user,           // User object with id, email, firstName, lastName
+  organizationId, // Current organization ID
+  role,          // User's role in the organization
+  permissions,   // Array of permission strings
+  featureFlags,  // Array of active feature flags
+} = await withAuth();
+```
+
+## Common Patterns
+
+### Protecting API Routes
+```typescript
+// app/api/protected/route.ts
+import { withAuth } from '@workos-inc/authkit-nextjs';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  const { user } = await withAuth();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  return NextResponse.json({ data: 'Protected data' });
+}
+```
+
+### Role-Based Access Control
+```typescript
+import { withAuth } from '@workos-inc/authkit-nextjs';
+import { redirect } from 'next/navigation';
+
+export default async function AdminPage() {
+  const { user, role } = await withAuth();
+
+  if (!user) {
+    redirect('/signin');
+  }
+
+  if (role !== 'admin') {
+    redirect('/unauthorized');
+  }
+
+  return <div>Admin content</div>;
+}
+```
+
+### Permission Checks
+```typescript
+import { withAuth } from '@workos-inc/authkit-nextjs';
+
+export default async function EditPage() {
+  const { user, permissions } = await withAuth();
+
+  if (!user) {
+    redirect('/signin');
+  }
+
+  const canEdit = permissions?.includes('write');
+
+  return (
+    <div>
+      {canEdit ? (
+        <button>Edit</button>
+      ) : (
+        <p>Read-only access</p>
+      )}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+1. **Always forward AuthKit headers** in custom middleware
+2. **Use middlewareAuth for secure by default** approach
+3. **Store OAuth tokens securely** in onSuccess callback if needed
+4. **Check authentication in Server Components** not just middleware
+5. **Handle session expiration gracefully** with onSessionExpired
+6. **Use environment-specific redirect URIs** for preview deployments
+7. **Validate permissions** at the component/action level for sensitive operations
+8. **Use Server Actions** for authenticated mutations
+9. **Implement proper error handling** in onError callback
+10. **Test authentication flows** thoroughly in development before deploying
+
+## Debugging
+
+Enable debug mode to see detailed logs:
+```typescript
+import { authkitMiddleware } from '@workos-inc/authkit-nextjs';
+
+export default authkitMiddleware({
+  debug: true,
+});
+```
+
+Or in custom middleware:
+```typescript
+const { session } = await authkit(request, {
+  debug: true,
+});
+```

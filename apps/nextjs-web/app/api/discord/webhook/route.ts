@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { WebhookPayload } from '@situationcord/shared-types';
 import { db, discordMessages, discordAuthors } from '@/lib/db';
 import { nanoid } from 'nanoid';
+import { start } from 'workflow/api';
+import { processDiscordMessage } from '@/workflows/discord-message';
 
 /**
  * POST /api/discord/webhook
@@ -98,6 +100,15 @@ export async function POST(request: NextRequest) {
         parentChannelId: body.message.parentChannelId,
         parentChannelName: body.message.parentChannelName,
       });
+    }
+
+    // Start workflow async - this executes asynchronously and doesn't block the app
+    // Pass the payload directly - Workflow DevKit handles serialization
+    try {
+      await start(processDiscordMessage, [body]);
+      console.log('Workflow started successfully for message:', body.message.id);
+    } catch (error) {
+      console.error('Error starting Discord message workflow:', error);
     }
 
     // Return success response

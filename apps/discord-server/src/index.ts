@@ -9,7 +9,7 @@ import type {
   AttachmentData,
   MentionData,
   ReactionData,
-} from '@situationcord/shared-types';
+} from './types';
 
 // Load environment variables
 dotenv.config();

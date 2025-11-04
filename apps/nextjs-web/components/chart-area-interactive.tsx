@@ -172,7 +172,7 @@ export function ChartAreaInteractive({ initialData }: ChartAreaInteractiveProps)
               stroke="var(--color-channel)"
               stackId="a"
             />
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend content={(props) => <ChartLegendContent {...props as any} />} />
           </AreaChart>
         </ChartContainer>
         </div>

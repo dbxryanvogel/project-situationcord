@@ -102,14 +102,20 @@ const ChartTooltip = RechartsPrimitive.Tooltip
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
-      hideLabel?: boolean
-      hideIndicator?: boolean
-      indicator?: "line" | "dot" | "dashed"
-      nameKey?: string
-      labelKey?: string
-    }
+  Omit<React.ComponentProps<"div">, "content"> & {
+    active?: boolean
+    payload?: any[]
+    label?: any
+    labelFormatter?: (value: any, payload: any[]) => React.ReactNode
+    labelClassName?: string
+    formatter?: (value: any, name: any, item: any, index: number, payload: any) => React.ReactNode
+    color?: string
+    hideLabel?: boolean
+    hideIndicator?: boolean
+    indicator?: "line" | "dot" | "dashed"
+    nameKey?: string
+    labelKey?: string
+  }
 >(
   (
     {
@@ -212,11 +218,14 @@ const ChartTooltipContent = React.forwardRef<
                               } as React.CSSProperties
                             }
                           >
-                            {indicator === "dot" ? (
+                            {/* @ts-ignore - indicator type is narrowed but all cases are valid */}
+                            {indicator === "dot" && (
                               <div className="h-2 w-2 rounded-full" />
-                            ) : indicator === "dashed" ? (
+                            )}
+                            {indicator === "dashed" && (
                               <div className="h-0.5 w-3 border-t-2 border-dashed" />
-                            ) : (
+                            )}
+                            {indicator === "line" && (
                               <div className="h-0.5 w-3" />
                             )}
                           </div>
@@ -235,11 +244,13 @@ const ChartTooltipContent = React.forwardRef<
                               } as React.CSSProperties
                             }
                           >
-                            {indicator === "dot" ? (
+                            {indicator === "dot" && (
                               <div className="h-2 w-2 rounded-full" />
-                            ) : indicator === "dashed" ? (
+                            )}
+                            {indicator === "dashed" && (
                               <div className="h-0.5 w-3 border-t-2 border-dashed" />
-                            ) : (
+                            )}
+                            {indicator === "line" && (
                               <div className="h-0.5 w-3" />
                             )}
                           </div>
@@ -277,11 +288,12 @@ const ChartLegend = RechartsPrimitive.Legend
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
+  React.ComponentProps<"div"> & {
+    payload?: any[]
+    verticalAlign?: "top" | "bottom"
+    hideIcon?: boolean
+    nameKey?: string
+  }
 >(
   (
     { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },

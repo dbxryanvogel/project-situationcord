@@ -102,15 +102,15 @@ function getSentimentIcon(sentiment: string | null) {
     
     switch (sentiment) {
         case 'positive':
-            return <Smile className="h-4 w-4 text-green-600 dark:text-green-400" title="Positive" />;
+            return <Smile className="h-4 w-4 text-green-600 dark:text-green-400" />;
         case 'neutral':
-            return <Meh className="h-4 w-4 text-gray-600 dark:text-gray-400" title="Neutral" />;
+            return <Meh className="h-4 w-4 text-gray-600 dark:text-gray-400" />;
         case 'negative':
-            return <Frown className="h-4 w-4 text-orange-600 dark:text-orange-400" title="Negative" />;
+            return <Frown className="h-4 w-4 text-orange-600 dark:text-orange-400" />;
         case 'frustrated':
-            return <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" title="Frustrated" />;
+            return <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />;
         case 'urgent':
-            return <Zap className="h-4 w-4 text-red-600 dark:text-red-400" title="Urgent" />;
+            return <Zap className="h-4 w-4 text-red-600 dark:text-red-400" />;
         default:
             return null;
     }

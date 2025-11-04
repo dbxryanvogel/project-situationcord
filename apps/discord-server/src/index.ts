@@ -1,5 +1,6 @@
 import { Client, GatewayIntentBits, Message, ChannelType } from 'discord.js';
 import dotenv from 'dotenv';
+import http from 'http';
 import type {
   WebhookPayload,
   MessageData,
@@ -230,7 +231,7 @@ async function sendToWebhook(payload: WebhookPayload): Promise<void> {
 }
 
 // Event: Bot is ready
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`✅ Bot logged in as ${client.user?.tag}`);
   console.log(`📡 Listening for messages...`);
 });
@@ -273,5 +274,31 @@ client.on('warn', (warning) => {
 client.login(DISCORD_BOT_TOKEN).catch((error) => {
   console.error('Failed to login:', error);
   process.exit(1);
+});
+
+// Health check server for container platforms (Koyeb, Railway, etc.)
+const PORT = process.env.PORT || 8000;
+const healthServer = http.createServer((req, res) => {
+  // Health check endpoint
+  if (req.url === '/health' || req.url === '/') {
+    const status = client.isReady() ? 'healthy' : 'starting';
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      bot: client.user ? {
+        username: client.user.username,
+        id: client.user.id,
+      } : null,
+    }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+});
+
+healthServer.listen(PORT, () => {
+  console.log(`🏥 Health check server listening on port ${PORT}`);
 });
 

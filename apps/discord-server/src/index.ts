@@ -237,11 +237,6 @@ client.once('ready', () => {
 
 // Event: New message created
 client.on('messageCreate', async (message: Message) => {
-  // Skip bot messages to avoid loops
-  if (message.author.bot) {
-    return;
-  }
-
   // Skip system messages
   if (message.system) {
     return;

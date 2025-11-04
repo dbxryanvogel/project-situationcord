@@ -1,11 +1,21 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { discordMessages, discordAuthors } from '@/lib/db';
-import { desc, eq, gte, sql } from 'drizzle-orm';
+import { discordMessages, discordAuthors, messageAnalysis, ignoredUsers } from '@/lib/db';
+import { desc, eq, gte, sql, notInArray } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 
 export async function getRecentMessages(limit: number = 50) {
-  const messages = await db
+  // First get list of ignored user IDs
+  const ignoredUserIds = await db
+    .select({ userId: ignoredUsers.userId })
+    .from(ignoredUsers);
+
+  const ignoredIds = ignoredUserIds.map(u => u.userId);
+
+  // Build the query
+  let query = db
     .select({
       id: discordMessages.id,
       messageId: discordMessages.messageId,
@@ -25,9 +35,27 @@ export async function getRecentMessages(limit: number = 50) {
         avatarUrl: discordAuthors.avatarUrl,
         bot: discordAuthors.bot,
       },
+      analysis: {
+        sentiment: messageAnalysis.sentiment,
+        isQuestion: messageAnalysis.isQuestion,
+        isAnswer: messageAnalysis.isAnswer,
+        answeredMessageId: messageAnalysis.answeredMessageId,
+        needsHelp: messageAnalysis.needsHelp,
+        categoryTags: messageAnalysis.categoryTags,
+        aiSummary: messageAnalysis.aiSummary,
+        confidenceScore: messageAnalysis.confidenceScore,
+      },
     })
     .from(discordMessages)
     .innerJoin(discordAuthors, eq(discordMessages.authorId, discordAuthors.id))
+    .leftJoin(messageAnalysis, eq(discordMessages.id, messageAnalysis.messageId));
+
+  // Filter out ignored users if there are any
+  if (ignoredIds.length > 0) {
+    query = query.where(notInArray(discordMessages.authorId, ignoredIds));
+  }
+
+  const messages = await query
     .orderBy(desc(discordMessages.messageTimestamp))
     .limit(limit);
 
@@ -129,5 +157,107 @@ export async function getUserMessageStats(userId: string) {
     .where(eq(discordMessages.authorId, userId));
 
   return stats[0] || null;
+}
+
+// Ignore List Management Actions
+
+export async function addUserToIgnoreList(userId: string, reason?: string) {
+  const { user } = await withAuth();
+  
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    const id = nanoid();
+    await db.insert(ignoredUsers).values({
+      id,
+      userId,
+      reason: reason || null,
+      ignoredBy: user.email,
+      createdAt: new Date(),
+    });
+
+    return { success: true, id };
+  } catch (error) {
+    console.error('Error adding user to ignore list:', error);
+    throw new Error('Failed to add user to ignore list');
+  }
+}
+
+export async function removeUserFromIgnoreList(userId: string) {
+  const { user } = await withAuth();
+  
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    await db
+      .delete(ignoredUsers)
+      .where(eq(ignoredUsers.userId, userId));
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing user from ignore list:', error);
+    throw new Error('Failed to remove user from ignore list');
+  }
+}
+
+export async function checkIfUserIsIgnored(userId: string) {
+  try {
+    const ignored = await db
+      .select()
+      .from(ignoredUsers)
+      .where(eq(ignoredUsers.userId, userId))
+      .limit(1);
+
+    return ignored.length > 0;
+  } catch (error) {
+    console.error('Error checking ignore list:', error);
+    return false;
+  }
+}
+
+export async function getIgnoredUsers() {
+  try {
+    const ignored = await db
+      .select({
+        id: ignoredUsers.id,
+        userId: ignoredUsers.userId,
+        reason: ignoredUsers.reason,
+        ignoredBy: ignoredUsers.ignoredBy,
+        createdAt: ignoredUsers.createdAt,
+        user: {
+          username: discordAuthors.username,
+          displayName: discordAuthors.displayName,
+          avatarUrl: discordAuthors.avatarUrl,
+          bot: discordAuthors.bot,
+        },
+      })
+      .from(ignoredUsers)
+      .innerJoin(discordAuthors, eq(ignoredUsers.userId, discordAuthors.id))
+      .orderBy(desc(ignoredUsers.createdAt));
+
+    return ignored;
+  } catch (error) {
+    console.error('Error getting ignored users:', error);
+    return [];
+  }
+}
+
+export async function getIgnoredUsersCount() {
+  try {
+    const result = await db
+      .select({
+        count: sql<number>`COUNT(*)::int`.as('count'),
+      })
+      .from(ignoredUsers);
+
+    return result[0]?.count || 0;
+  } catch (error) {
+    console.error('Error getting ignored users count:', error);
+    return 0;
+  }
 }
 

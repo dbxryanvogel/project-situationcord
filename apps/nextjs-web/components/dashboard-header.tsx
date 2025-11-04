@@ -1,5 +1,7 @@
 import { signOut } from '@workos-inc/authkit-nextjs';
 import { Button } from '@/components/ui/button';
+import { UserX } from 'lucide-react';
+import Link from 'next/link';
 
 interface DashboardHeaderProps {
   user: {
@@ -9,12 +11,14 @@ interface DashboardHeaderProps {
   };
   title?: string;
   subtitle?: string;
+  ignoredCount?: number;
 }
 
 export function DashboardHeader({ 
   user, 
   title = 'Monitoring the Situation',
-  subtitle 
+  subtitle,
+  ignoredCount = 0
 }: DashboardHeaderProps) {
   const defaultSubtitle = `Welcome back${user.firstName ? `, ${user.firstName}` : ''}!`;
   
@@ -33,16 +37,29 @@ export function DashboardHeader({
           </p>
         )}
       </div>
-      <form
-        action={async () => {
-          'use server';
-          await signOut();
-        }}
-      >
-        <Button type="submit" variant="default">
-          Sign Out
+      <div className="flex items-center gap-3">
+        <Button asChild variant="outline" size="sm" className="gap-2 relative">
+          <Link href="/dashboard/ignored">
+            <UserX className="h-4 w-4" />
+            Ignored Users
+            {ignoredCount > 0 && (
+              <span className="ml-1 bg-red-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
+                {ignoredCount}
+              </span>
+            )}
+          </Link>
         </Button>
-      </form>
+        <form
+          action={async () => {
+            'use server';
+            await signOut();
+          }}
+        >
+          <Button type="submit" variant="default" size="sm">
+            Sign Out
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

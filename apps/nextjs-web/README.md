@@ -1,6 +1,8 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## WorkOS AuthKit Setup
+## Environment Setup
+
+### WorkOS AuthKit Setup
 
 This project uses WorkOS AuthKit for authentication. To get started:
 
@@ -23,6 +25,27 @@ openssl rand -base64 24
    - Configure your login endpoint (if needed)
 
 4. Get your API key and Client ID from the [WorkOS Dashboard](https://dashboard.workos.com/api-keys)
+
+### OpenAI API Setup
+
+This project uses OpenAI's GPT-4o-mini for AI-powered message analysis including sentiment detection, categorization, and Q&A cross-referencing.
+
+1. **Get your OpenAI API key:**
+   - Sign up at [OpenAI Platform](https://platform.openai.com)
+   - Navigate to API keys section
+   - Create a new API key
+
+2. **Add to `.env.local`:**
+```bash
+OPENAI_API_KEY='sk-your_openai_api_key_here'
+```
+
+**Note:** The AI analysis workflow automatically analyzes Discord messages for:
+- Sentiment (positive, neutral, negative, frustrated, urgent)
+- Question/Answer detection
+- Help needed flagging
+- Category tagging (Free Limits, Billing, Account, BaaS, Console, Vercel)
+- Q&A cross-referencing in threads
 
 ## Database Setup (Drizzle + Neon Postgres)
 

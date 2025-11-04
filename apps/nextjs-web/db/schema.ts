@@ -6,6 +6,7 @@ import {
   boolean,
   integer,
   index,
+  numeric,
 } from 'drizzle-orm/pg-core';
 import type { WebhookPayload } from '@situationcord/shared-types';
 import { relations } from 'drizzle-orm';
@@ -91,14 +92,103 @@ export const discordMessages = pgTable(
   }
 );
 
+// Message Analysis table
+export const messageAnalysis = pgTable(
+  'message_analysis',
+  {
+    // Primary key
+    id: text('id').primaryKey(),
+    
+    // Foreign key to discord_messages
+    messageId: text('message_id')
+      .notNull()
+      .references(() => discordMessages.id, { onDelete: 'cascade' }),
+    
+    // Analysis fields
+    sentiment: text('sentiment').notNull(), // positive, neutral, negative, frustrated, urgent
+    isQuestion: boolean('is_question').notNull().default(false),
+    isAnswer: boolean('is_answer').notNull().default(false),
+    answeredMessageId: text('answered_message_id'), // References another message that was answered
+    needsHelp: boolean('needs_help').notNull().default(false),
+    categoryTags: jsonb('category_tags').$type<string[]>().notNull().default([]), // Free Limits, Billing, Account, BaaS, Console, Vercel
+    aiSummary: text('ai_summary').notNull(),
+    confidenceScore: numeric('confidence_score', { precision: 3, scale: 2 }), // 0.00 to 1.00
+    severityScore: numeric('severity_score', { precision: 5, scale: 2 }), // 0.00 to 100.00
+    severityLevel: text('severity_level'), // low, medium, high, critical
+    severityReason: text('severity_reason'),
+    modelVersion: text('model_version').notNull(),
+    
+    // Metadata
+    processedAt: timestamp('processed_at').defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      // Indexes for common queries
+      messageIdIdx: index('analysis_message_id_idx').on(table.messageId),
+      sentimentIdx: index('analysis_sentiment_idx').on(table.sentiment),
+      needsHelpIdx: index('analysis_needs_help_idx').on(table.needsHelp),
+      isQuestionIdx: index('analysis_is_question_idx').on(table.isQuestion),
+      isAnswerIdx: index('analysis_is_answer_idx').on(table.isAnswer),
+      severityLevelIdx: index('analysis_severity_level_idx').on(table.severityLevel),
+    };
+  }
+);
+
 // Relations
 export const discordAuthorsRelations = relations(discordAuthors, ({ many }) => ({
   messages: many(discordMessages),
 }));
 
-export const discordMessagesRelations = relations(discordMessages, ({ one }) => ({
+export const discordMessagesRelations = relations(discordMessages, ({ one, many }) => ({
   author: one(discordAuthors, {
     fields: [discordMessages.authorId],
+    references: [discordAuthors.id],
+  }),
+  analysis: one(messageAnalysis, {
+    fields: [discordMessages.id],
+    references: [messageAnalysis.messageId],
+  }),
+}));
+
+export const messageAnalysisRelations = relations(messageAnalysis, ({ one }) => ({
+  message: one(discordMessages, {
+    fields: [messageAnalysis.messageId],
+    references: [discordMessages.id],
+  }),
+}));
+
+// Ignored Users table
+export const ignoredUsers = pgTable(
+  'ignored_users',
+  {
+    // Primary key
+    id: text('id').primaryKey(),
+    
+    // Discord user ID to ignore
+    userId: text('user_id')
+      .notNull()
+      .unique()
+      .references(() => discordAuthors.id, { onDelete: 'cascade' }),
+    
+    // Optional reason for ignoring
+    reason: text('reason'),
+    
+    // Who added them to ignore list (could be user email or system)
+    ignoredBy: text('ignored_by'),
+    
+    // Metadata
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      userIdIdx: index('ignored_users_user_id_idx').on(table.userId),
+    };
+  }
+);
+
+export const ignoredUsersRelations = relations(ignoredUsers, ({ one }) => ({
+  user: one(discordAuthors, {
+    fields: [ignoredUsers.userId],
     references: [discordAuthors.id],
   }),
 }));
@@ -108,3 +198,9 @@ export type NewDiscordAuthor = typeof discordAuthors.$inferInsert;
 
 export type DiscordMessage = typeof discordMessages.$inferSelect;
 export type NewDiscordMessage = typeof discordMessages.$inferInsert;
+
+export type MessageAnalysis = typeof messageAnalysis.$inferSelect;
+export type NewMessageAnalysis = typeof messageAnalysis.$inferInsert;
+
+export type IgnoredUser = typeof ignoredUsers.$inferSelect;
+export type NewIgnoredUser = typeof ignoredUsers.$inferInsert;

@@ -1,8 +1,9 @@
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { notFound } from 'next/navigation';
-import { getUserInfo, getUserMessages, getUserMessageStats } from '@/app/dashboard/actions';
+import { getUserInfo, getUserMessages, getUserMessageStats, checkIfUserIsIgnored } from '@/app/dashboard/actions';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { UserMessageList } from '@/components/user-message-list';
+import { IgnoreUserButton } from '@/components/ignore-user-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -17,10 +18,11 @@ export default async function UserPage({ params }: UserPageProps) {
   const { user: currentUser } = await withAuth({ ensureSignedIn: true });
   const { id } = await params;
   
-  const [userInfo, messages, stats] = await Promise.all([
+  const [userInfo, messages, stats, isIgnored] = await Promise.all([
     getUserInfo(id),
     getUserMessages(id),
     getUserMessageStats(id),
+    checkIfUserIsIgnored(id),
   ]);
 
   if (!userInfo) {
@@ -51,25 +53,37 @@ export default async function UserPage({ params }: UserPageProps) {
         {/* User Profile Card */}
         <Card className="mb-8">
           <CardHeader>
-            <div className="flex items-center gap-4">
-              {userInfo.avatarUrl && (
-                <img
-                  src={userInfo.avatarUrl}
-                  alt={userInfo.displayName || userInfo.username}
-                  className="w-16 h-16 rounded-full"
-                />
-              )}
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  {userInfo.displayName || userInfo.username}
-                  {userInfo.bot && (
-                    <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
-                      BOT
-                    </span>
-                  )}
-                </CardTitle>
-                <CardDescription>@{userInfo.username}</CardDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {userInfo.avatarUrl && (
+                  <img
+                    src={userInfo.avatarUrl}
+                    alt={userInfo.displayName || userInfo.username}
+                    className="w-16 h-16 rounded-full"
+                  />
+                )}
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    {userInfo.displayName || userInfo.username}
+                    {userInfo.bot && (
+                      <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
+                        BOT
+                      </span>
+                    )}
+                    {isIgnored && (
+                      <span className="text-xs bg-red-500 text-white px-2 py-1 rounded">
+                        IGNORED
+                      </span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>@{userInfo.username}</CardDescription>
+                </div>
               </div>
+              <IgnoreUserButton 
+                userId={id} 
+                username={userInfo.username} 
+                isIgnored={isIgnored} 
+              />
             </div>
           </CardHeader>
           <CardContent>

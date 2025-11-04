@@ -151,15 +151,15 @@ function getCategoryColor(category: string) {
 
 export default async function MessagePage({ params }: Props) {
   const { messageId } = await params;
-  const [data, { user }, ignoredCount] = await Promise.all([
-    getMessageData(messageId),
-    withAuth({ ensureSignedIn: true }),
-    getIgnoredUsersCount(),
-  ]);
+  const data = await getMessageData(messageId);
 
   if (!data) {
     notFound();
   }
+
+  // Make auth optional - users can view messages without logging in
+  const { user } = await withAuth();
+  const ignoredCount = user ? await getIgnoredUsersCount() : 0;
 
   const discordUrl = getDiscordMessageUrl(data);
 
@@ -177,19 +177,23 @@ export default async function MessagePage({ params }: Props) {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main className="container mx-auto max-w-7xl px-4 py-8">
-        <DashboardHeader 
-          user={user} 
-          title="Message Details"
-          subtitle={`Viewing message from ${data.author.displayName || data.author.username}`}
-          ignoredCount={ignoredCount}
-        />
+        {user && (
+          <DashboardHeader 
+            user={user} 
+            title="Message Details"
+            subtitle={`Viewing message from ${data.author.displayName || data.author.username}`}
+            ignoredCount={ignoredCount}
+          />
+        )}
 
         <div className="max-w-4xl">
-          <div className="mb-6">
-            <Link href="/dashboard" className="text-blue-600 hover:underline">
-              ← Back to Dashboard
-            </Link>
-          </div>
+          {user && (
+            <div className="mb-6">
+              <Link href="/dashboard" className="text-blue-600 hover:underline">
+                ← Back to Dashboard
+              </Link>
+            </div>
+          )}
 
           <Card>
           <CardHeader>

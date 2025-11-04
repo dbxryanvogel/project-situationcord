@@ -76,10 +76,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   // Get base URL - try multiple sources
-  const baseUrl = 
-    process.env.NEXT_PUBLIC_BASE_URL || 
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-    'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://situationcord.vercel.app";
   const ogImageUrl = `${baseUrl}/api/og/message/${messageId}`;
 
   const description = data.analysis?.aiSummary || data.message.content.substring(0, 200);

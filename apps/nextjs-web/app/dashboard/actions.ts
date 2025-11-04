@@ -15,7 +15,7 @@ export async function getRecentMessages(limit: number = 50) {
   const ignoredIds = ignoredUserIds.map(u => u.userId);
 
   // Build the query
-  let query = db
+  const query = db
     .select({
       id: discordMessages.id,
       messageId: discordMessages.messageId,
@@ -48,14 +48,13 @@ export async function getRecentMessages(limit: number = 50) {
     })
     .from(discordMessages)
     .innerJoin(discordAuthors, eq(discordMessages.authorId, discordAuthors.id))
-    .leftJoin(messageAnalysis, eq(discordMessages.id, messageAnalysis.messageId));
+    .leftJoin(messageAnalysis, eq(discordMessages.id, messageAnalysis.messageId))
+    .$dynamic();
 
   // Filter out ignored users if there are any
-  if (ignoredIds.length > 0) {
-    query = query.where(notInArray(discordMessages.authorId, ignoredIds));
-  }
-
-  const messages = await query
+  const messages = await (ignoredIds.length > 0
+    ? query.where(notInArray(discordMessages.authorId, ignoredIds))
+    : query)
     .orderBy(desc(discordMessages.messageTimestamp))
     .limit(limit);
 

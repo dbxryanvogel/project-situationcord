@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { discordMessages, discordAuthors, messageAnalysis } from '@/lib/db';
 import { eq } from 'drizzle-orm';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { ExternalLink } from 'lucide-react';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { getIgnoredUsersCount } from '@/app/dashboard/actions';
+
+const SHOULD_DIRECT_TO_DISCORD = true;
 
 type Props = {
   params: { messageId: string };
@@ -159,6 +161,11 @@ export default async function MessagePage({ params }: Props) {
   const ignoredCount = user ? await getIgnoredUsersCount() : 0;
 
   const discordUrl = getDiscordMessageUrl(data);
+
+  // Redirect to Discord if flag is enabled
+  if (SHOULD_DIRECT_TO_DISCORD && discordUrl) {
+    redirect(discordUrl);
+  }
 
   const formatTimestamp = (timestamp: Date) => {
     return new Intl.DateTimeFormat('en-US', {

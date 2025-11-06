@@ -260,3 +260,124 @@ export async function getIgnoredUsersCount() {
   }
 }
 
+// Radar Chart Data Actions
+
+export async function getQuestionAnswerData() {
+  try {
+    const results = await db
+      .select({
+        isQuestion: messageAnalysis.isQuestion,
+        isAnswer: messageAnalysis.isAnswer,
+        needsHelp: messageAnalysis.needsHelp,
+      })
+      .from(messageAnalysis);
+
+    const questions = results.filter(r => r.isQuestion).length;
+    const answers = results.filter(r => r.isAnswer).length;
+    const needsHelp = results.filter(r => r.needsHelp).length;
+    const general = results.filter(r => !r.isQuestion && !r.isAnswer && !r.needsHelp).length;
+
+    return [
+      { category: 'Questions', value: questions },
+      { category: 'Answers', value: answers },
+      { category: 'Needs Help', value: needsHelp },
+      { category: 'General', value: general },
+    ];
+  } catch (error) {
+    console.error('Error getting question/answer data:', error);
+    return [
+      { category: 'Questions', value: 0 },
+      { category: 'Answers', value: 0 },
+      { category: 'Needs Help', value: 0 },
+      { category: 'General', value: 0 },
+    ];
+  }
+}
+
+export async function getTopicsData() {
+  try {
+    const results = await db
+      .select({
+        categoryTags: messageAnalysis.categoryTags,
+      })
+      .from(messageAnalysis);
+
+    // Count occurrences of each category tag
+    const categoryCount = new Map<string, number>();
+    
+    results.forEach(row => {
+      const tags = row.categoryTags as string[] | null;
+      if (tags && Array.isArray(tags)) {
+        tags.forEach(tag => {
+          categoryCount.set(tag, (categoryCount.get(tag) || 0) + 1);
+        });
+      }
+    });
+
+    // Convert to array and sort by count
+    const sortedCategories = Array.from(categoryCount.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 8) // Top 8 categories for better radar chart visualization
+      .map(([category, value]) => ({ category, value }));
+
+    // Ensure we have at least some data for the chart
+    if (sortedCategories.length === 0) {
+      return [
+        { category: 'Free Limits', value: 0 },
+        { category: 'Billing', value: 0 },
+        { category: 'Account', value: 0 },
+        { category: 'BaaS', value: 0 },
+        { category: 'Console', value: 0 },
+      ];
+    }
+
+    return sortedCategories;
+  } catch (error) {
+    console.error('Error getting topics data:', error);
+    return [
+      { category: 'Free Limits', value: 0 },
+      { category: 'Billing', value: 0 },
+      { category: 'Account', value: 0 },
+      { category: 'BaaS', value: 0 },
+      { category: 'Console', value: 0 },
+    ];
+  }
+}
+
+export async function getSentimentData() {
+  try {
+    const results = await db
+      .select({
+        sentiment: messageAnalysis.sentiment,
+      })
+      .from(messageAnalysis);
+
+    // Count occurrences of each sentiment
+    const sentimentCount = new Map<string, number>();
+    
+    results.forEach(row => {
+      if (row.sentiment) {
+        sentimentCount.set(row.sentiment, (sentimentCount.get(row.sentiment) || 0) + 1);
+      }
+    });
+
+    // Convert to array with proper capitalization
+    const sentiments = ['positive', 'neutral', 'negative', 'frustrated', 'urgent'];
+    const data = sentiments.map(sentiment => ({
+      category: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
+      value: sentimentCount.get(sentiment) || 0,
+    }));
+
+    return data;
+  } catch (error) {
+    console.error('Error getting sentiment data:', error);
+    return [
+      { category: 'Positive', value: 0 },
+      { category: 'Neutral', value: 0 },
+      { category: 'Negative', value: 0 },
+      { category: 'Frustrated', value: 0 },
+      { category: 'Urgent', value: 0 },
+    ];
+  }
+}
+

@@ -1,15 +1,23 @@
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import { ChartAreaInteractive } from '@/components/chart-area-interactive';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { MessageLog } from '@/components/message-log';
-import { getRecentMessages, getMessageChartData, getIgnoredUsersCount } from './actions';
+import { DashboardRadarCharts } from '@/components/dashboard-radar-charts';
+import { 
+  getRecentMessages, 
+  getIgnoredUsersCount,
+  getQuestionAnswerData,
+  getTopicsData,
+  getSentimentData,
+} from './actions';
 
 export default async function DashboardPage() {
   const { user } = await withAuth({ ensureSignedIn: true });
-  const [messages, chartData, ignoredCount] = await Promise.all([
+  const [messages, ignoredCount, questionAnswerData, topicsData, sentimentData] = await Promise.all([
     getRecentMessages(),
-    getMessageChartData(7),
     getIgnoredUsersCount(),
+    getQuestionAnswerData(),
+    getTopicsData(),
+    getSentimentData(),
   ]);
 
   return (
@@ -18,7 +26,11 @@ export default async function DashboardPage() {
         <DashboardHeader user={user} ignoredCount={ignoredCount} />
 
         <div className="mb-8">
-          <ChartAreaInteractive initialData={chartData} />
+          <DashboardRadarCharts 
+            questionAnswerData={questionAnswerData}
+            topicsData={topicsData}
+            sentimentData={sentimentData}
+          />
         </div>
 
         <div className="mb-8">

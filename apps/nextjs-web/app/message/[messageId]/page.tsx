@@ -10,7 +10,6 @@ import { ExternalLink } from 'lucide-react';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { getIgnoredUsersCount } from '@/app/dashboard/actions';
-import { MessageRadarCharts } from '@/components/message-radar-charts';
 
 const SHOULD_DIRECT_TO_DISCORD = true;
 
@@ -257,17 +256,10 @@ export default async function MessagePage({ params }: Props) {
               </p>
             </div>
 
-            {/* Radar Charts */}
-            {data.analysis && (
-              <div className="pt-6">
-                <MessageRadarCharts analysis={data.analysis} />
-              </div>
-            )}
-
             {/* AI Analysis */}
             {data.analysis && (
               <div className="space-y-4 pt-4 border-t">
-                <h2 className="text-xl font-semibold">AI Analysis Details</h2>
+                <h2 className="text-xl font-semibold">AI Analysis</h2>
 
                 {/* Sentiment */}
                 {data.analysis.sentiment && (

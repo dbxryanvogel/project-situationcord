@@ -47,7 +47,7 @@ export async function processDiscordMessage(payload: WebhookPayload) {
 
   // Step 6: Route to Customer.io if high severity and not ignored
   let customerIoSent = false;
-  const shouldRoute = analysis.severityScore >= 70 || analysis.severityLevel === 'high' || analysis.severityLevel === 'critical';
+  const shouldRoute = analysis.severityScore >= 50 || analysis.severityLevel === 'medium' || analysis.severityLevel === 'high' || analysis.severityLevel === 'critical';
   
   if (shouldRoute && !isIgnored) {
     console.log(`[Workflow] High severity detected (${analysis.severityLevel}, ${analysis.severityScore}), routing to Customer.io`);

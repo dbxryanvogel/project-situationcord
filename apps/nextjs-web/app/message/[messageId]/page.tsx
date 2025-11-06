@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { discordMessages, discordAuthors, messageAnalysis } from '@/lib/db';
 import { eq } from 'drizzle-orm';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,17 @@ import { DashboardHeader } from '@/components/dashboard-header';
 import { getIgnoredUsersCount } from '@/app/dashboard/actions';
 
 const SHOULD_DIRECT_TO_DISCORD = true;
+
+// Client-side redirect component
+function ClientRedirect({ url }: { url: string }) {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `window.location.href = ${JSON.stringify(url)};`,
+      }}
+    />
+  );
+}
 
 type Props = {
   params: { messageId: string };
@@ -162,11 +173,6 @@ export default async function MessagePage({ params }: Props) {
 
   const discordUrl = getDiscordMessageUrl(data);
 
-  // Redirect to Discord if flag is enabled
-  if (SHOULD_DIRECT_TO_DISCORD && discordUrl) {
-    redirect(discordUrl);
-  }
-
   const formatTimestamp = (timestamp: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -180,6 +186,9 @@ export default async function MessagePage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
+      {/* Client-side redirect to Discord - crawlers won't execute this JavaScript */}
+      {SHOULD_DIRECT_TO_DISCORD && discordUrl && <ClientRedirect url={discordUrl} />}
+      
       <main className="container mx-auto max-w-7xl px-4 py-8">
         {user && (
           <DashboardHeader 

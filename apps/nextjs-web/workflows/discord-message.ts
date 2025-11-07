@@ -47,14 +47,17 @@ export async function processDiscordMessage(payload: WebhookPayload) {
 
   // Step 6: Route to Customer.io if high severity and not ignored
   let customerIoSent = false;
-  const shouldRoute = analysis.severityScore >= 50 || analysis.severityLevel === 'medium' || analysis.severityLevel === 'high' || analysis.severityLevel === 'critical';
+  const shouldRoute = analysis.severityScore >= 70 || analysis.severityLevel === 'high' || analysis.severityLevel === 'critical';
+  const isInThread = !!payload.message.threadId;
   
-  if (shouldRoute && !isIgnored) {
+  if (shouldRoute && !isIgnored && !isInThread) {
     console.log(`[Workflow] High severity detected (${analysis.severityLevel}, ${analysis.severityScore}), routing to Customer.io`);
     await sendToCustomerIO(payload, analysis);
     customerIoSent = true;
   } else if (shouldRoute && isIgnored) {
     console.log(`[Workflow] High severity detected but user ${payload.message.author.username} is on ignore list, skipping Customer.io`);
+  } else if (shouldRoute && isInThread) {
+    console.log(`[Workflow] High severity detected but message is in thread ${payload.message.threadId}, skipping Customer.io`);
   }
 
   console.log(`[Workflow] Completed analysis for message ${payload.message.id}`);

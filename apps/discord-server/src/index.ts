@@ -18,7 +18,6 @@ dotenv.config();
 // Validate required environment variables
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
-const SECONDARY_WEBHOOK_URL = process.env.SECONDARY_WEBHOOK_URL;
 
 if (!DISCORD_BOT_TOKEN) {
   throw new Error('DISCORD_BOT_TOKEN is required. Please set it in your .env file.');
@@ -26,10 +25,6 @@ if (!DISCORD_BOT_TOKEN) {
 
 if (!WEBHOOK_URL) {
   throw new Error('WEBHOOK_URL is required. Please set it in your .env file.');
-}
-
-if (!SECONDARY_WEBHOOK_URL) {
-  throw new Error('SECONDARY_WEBHOOK_URL is required. Please set it in your .env file.');
 }
 
 // Initialize Discord client with necessary intents
@@ -206,24 +201,7 @@ async function sendToWebhook(payload: WebhookPayload): Promise<void> {
       return;
     }
 
-    const secondaryResponse = await fetch(SECONDARY_WEBHOOK_URL!, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!secondaryResponse.ok) {
-      const errorText = await secondaryResponse.text().catch(() => 'Unknown error');
-      console.error(
-        `Secondary webhook request failed: ${secondaryResponse.status} ${secondaryResponse.statusText}`,
-        errorText
-      );
-      return;
-    }
-
-    console.log(`Successfully sent message ${payload.message.id} to webhook and secondary webhook`);
+    console.log(`Successfully sent message ${payload.message.id} to webhook`);
   } catch (error) {
     console.error('Error sending webhook:', error);
     // Don't throw - we want the bot to continue running even if webhook fails

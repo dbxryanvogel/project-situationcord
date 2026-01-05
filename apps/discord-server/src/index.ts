@@ -1,6 +1,6 @@
-import { Client, GatewayIntentBits, Message, ChannelType } from 'discord.js';
-import dotenv from 'dotenv';
-import http from 'http';
+import { Client, GatewayIntentBits, Message, ChannelType } from "discord.js";
+import dotenv from "dotenv";
+import http from "http";
 import type {
   WebhookPayload,
   MessageData,
@@ -10,7 +10,7 @@ import type {
   AttachmentData,
   MentionData,
   ReactionData,
-} from './types';
+} from "./types";
 
 // Load environment variables
 dotenv.config();
@@ -20,11 +20,60 @@ const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 if (!DISCORD_BOT_TOKEN) {
-  throw new Error('DISCORD_BOT_TOKEN is required. Please set it in your .env file.');
+  throw new Error(
+    "DISCORD_BOT_TOKEN is required. Please set it in your .env file.",
+  );
 }
 
 if (!WEBHOOK_URL) {
-  throw new Error('WEBHOOK_URL is required. Please set it in your .env file.');
+  throw new Error("WEBHOOK_URL is required. Please set it in your .env file.");
+}
+
+// Channel filtering configuration
+// Set CHANNEL_IDS to "ALL" to monitor all channels, or comma-separated channel IDs
+const CHANNEL_IDS_RAW = process.env.CHANNEL_IDS;
+let monitoredChannels: string[] = [];
+let monitorAllChannels = true;
+
+if (CHANNEL_IDS_RAW) {
+  if (CHANNEL_IDS_RAW.toUpperCase() === "ALL") {
+    monitorAllChannels = true;
+    console.log("📡 Channel filtering: Monitoring ALL channels");
+  } else {
+    monitorAllChannels = false;
+    monitoredChannels = CHANNEL_IDS_RAW.split(",")
+      .map((id) => id.trim())
+      .filter((id) => id);
+    console.log(
+      `📡 Channel filtering: Monitoring ${monitoredChannels.length} specific channels`,
+    );
+  }
+} else {
+  console.log(
+    "📡 Channel filtering: No CHANNEL_IDS set, monitoring ALL channels",
+  );
+}
+
+/**
+ * Checks if a message should be processed based on channel filtering
+ */
+function shouldProcessChannel(message: Message): boolean {
+  // If monitoring all channels, always process
+  if (monitorAllChannels) {
+    return true;
+  }
+
+  // For threads, check if the parent channel is monitored
+  if (message.channel.isThread()) {
+    const parentId = message.channel.parentId;
+    if (parentId && monitoredChannels.includes(parentId)) {
+      return true;
+    }
+    return false;
+  }
+
+  // For regular channels, check if the channel is in the list
+  return monitoredChannels.includes(message.channel.id);
 }
 
 // Initialize Discord client with necessary intents
@@ -117,17 +166,19 @@ function collectMessageData(message: Message): MessageData {
   }));
 
   // Collect attachment data
-  const attachments: AttachmentData[] = message.attachments.map((attachment) => ({
-    id: attachment.id,
-    filename: attachment.name,
-    contentType: attachment.contentType,
-    size: attachment.size,
-    url: attachment.url,
-    proxyUrl: attachment.proxyURL,
-    height: attachment.height,
-    width: attachment.width,
-    description: attachment.description,
-  }));
+  const attachments: AttachmentData[] = message.attachments.map(
+    (attachment) => ({
+      id: attachment.id,
+      filename: attachment.name,
+      contentType: attachment.contentType,
+      size: attachment.size,
+      url: attachment.url,
+      proxyUrl: attachment.proxyURL,
+      height: attachment.height,
+      width: attachment.width,
+      description: attachment.description,
+    }),
+  );
 
   // Collect mention data
   const mentions: MentionData[] = message.mentions.users.map((user) => ({
@@ -140,7 +191,7 @@ function collectMessageData(message: Message): MessageData {
   const reactions: ReactionData[] = message.reactions.cache.map((reaction) => ({
     emoji: {
       id: reaction.emoji.id,
-      name: reaction.emoji.name || '',
+      name: reaction.emoji.name || "",
       animated: reaction.emoji.animated || false,
     },
     count: reaction.count,
@@ -153,12 +204,13 @@ function collectMessageData(message: Message): MessageData {
     content: message.content,
     timestamp: message.createdAt.toISOString(),
     editedTimestamp: message.editedTimestamp
-      ? typeof message.editedTimestamp === 'number'
+      ? typeof message.editedTimestamp === "number"
         ? new Date(message.editedTimestamp).toISOString()
         : (message.editedTimestamp as Date).toISOString()
       : null,
     channelId: channel.id,
-    channelName: channel.isTextBased() && 'name' in channel ? channel.name : null,
+    channelName:
+      channel.isTextBased() && "name" in channel ? channel.name : null,
     channelType: channel.type,
     threadId,
     threadName,
@@ -185,39 +237,49 @@ function collectMessageData(message: Message): MessageData {
 async function sendToWebhook(payload: WebhookPayload): Promise<void> {
   try {
     const response = await fetch(WEBHOOK_URL!, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
+      const errorText = await response.text().catch(() => "Unknown error");
       console.error(
         `Webhook request failed: ${response.status} ${response.statusText}`,
-        errorText
+        errorText,
       );
       return;
     }
 
     console.log(`Successfully sent message ${payload.message.id} to webhook`);
   } catch (error) {
-    console.error('Error sending webhook:', error);
+    console.error("Error sending webhook:", error);
     // Don't throw - we want the bot to continue running even if webhook fails
   }
 }
 
 // Event: Bot is ready
-client.once('clientReady', () => {
+client.once("clientReady", () => {
   console.log(`✅ Bot logged in as ${client.user?.tag}`);
   console.log(`📡 Listening for messages...`);
 });
 
 // Event: New message created
-client.on('messageCreate', async (message: Message) => {
+client.on("messageCreate", async (message: Message) => {
   // Skip system messages
   if (message.system) {
+    return;
+  }
+
+  // Skip bot messages to prevent loops and unnecessary processing
+  if (message.author.bot) {
+    return;
+  }
+
+  // Check channel filtering
+  if (!shouldProcessChannel(message)) {
     return;
   }
 
@@ -227,7 +289,7 @@ client.on('messageCreate', async (message: Message) => {
 
     // Build webhook payload
     const payload: WebhookPayload = {
-      eventType: 'messageCreate',
+      eventType: "messageCreate",
       timestamp: new Date().toISOString(),
       message: messageData,
     };
@@ -235,22 +297,22 @@ client.on('messageCreate', async (message: Message) => {
     // Send to webhook
     await sendToWebhook(payload);
   } catch (error) {
-    console.error('Error processing message:', error);
+    console.error("Error processing message:", error);
   }
 });
 
 // Event: Error handling
-client.on('error', (error) => {
-  console.error('Discord client error:', error);
+client.on("error", (error) => {
+  console.error("Discord client error:", error);
 });
 
-client.on('warn', (warning) => {
-  console.warn('Discord client warning:', warning);
+client.on("warn", (warning) => {
+  console.warn("Discord client warning:", warning);
 });
 
 // Login to Discord
 client.login(DISCORD_BOT_TOKEN).catch((error) => {
-  console.error('Failed to login:', error);
+  console.error("Failed to login:", error);
   process.exit(1);
 });
 
@@ -258,25 +320,28 @@ client.login(DISCORD_BOT_TOKEN).catch((error) => {
 const PORT = process.env.PORT || 8000;
 const healthServer = http.createServer((req, res) => {
   // Health check endpoint
-  if (req.url === '/health' || req.url === '/') {
-    const status = client.isReady() ? 'healthy' : 'starting';
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status,
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
-      bot: client.user ? {
-        username: client.user.username,
-        id: client.user.id,
-      } : null,
-    }));
+  if (req.url === "/health" || req.url === "/") {
+    const status = client.isReady() ? "healthy" : "starting";
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        status,
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        bot: client.user
+          ? {
+              username: client.user.username,
+              id: client.user.id,
+            }
+          : null,
+      }),
+    );
   } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not Found");
   }
 });
 
 healthServer.listen(PORT, () => {
   console.log(`🏥 Health check server listening on port ${PORT}`);
 });
-

@@ -25,12 +25,12 @@
     "drizzle-orm": "^0.44.7",
     "lucide-react": "^0.552.0",
     "nanoid": "^5.1.6",
-    "next": "16.0.1",
+    "next": "^16.1.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "recharts": "^3.3.0",
     "tailwind-merge": "^3.3.1",
-    "workflow": "^4.0.1-beta.7",
+    "workflow": "^4.0.1-beta.41",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -38,6 +38,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "baseline-browser-mapping": "^2.9.11",
     "drizzle-kit": "^0.31.6",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",

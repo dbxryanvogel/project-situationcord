@@ -12,9 +12,6 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
-  "optionalDependencies": {
-    "lightningcss-linux-x64-gnu": "^1.30.2"
-  },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.62",
     "@neondatabase/serverless": "^1.0.2",

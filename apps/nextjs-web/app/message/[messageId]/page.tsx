@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ExternalLink } from 'lucide-react';
-import { withAuth } from '@workos-inc/authkit-nextjs';
+import { neonAuth } from '@neondatabase/auth/next/server';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { getIgnoredUsersCount } from '@/app/dashboard/actions';
 
@@ -168,7 +168,7 @@ export default async function MessagePage({ params }: Props) {
   }
 
   // Make auth optional - users can view messages without logging in
-  const { user } = await withAuth();
+  const { user } = await neonAuth();
   const ignoredCount = user ? await getIgnoredUsersCount() : 0;
 
   const discordUrl = getDiscordMessageUrl(data);
@@ -359,4 +359,3 @@ export default async function MessagePage({ params }: Props) {
     </div>
   );
 }
-

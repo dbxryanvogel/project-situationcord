@@ -1,12 +1,7 @@
-import { authkitMiddleware } from '@workos-inc/authkit-nextjs';
+import { neonAuthMiddleware } from "@neondatabase/auth/next/server";
 
-// In middleware auth mode, each page is protected by default.
-// Exceptions are configured via the `unauthenticatedPaths` option.
-export default authkitMiddleware({
-  middlewareAuth: {
-    enabled: true,
-    unauthenticatedPaths: ['/', '/signin', '/auth/callback', '/message/:path*'],
-  },
+export default neonAuthMiddleware({
+  loginUrl: "/auth/sign-in",
 });
 
 // Match against pages that require authentication
@@ -20,8 +15,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - .well-known/workflow (Workflow DevKit internal routes)
+     * - auth (auth pages should be publicly accessible)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.well-known/workflow).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|.well-known/workflow|auth).*)",
   ],
 };
-

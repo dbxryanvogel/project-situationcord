@@ -1,27 +1,33 @@
-import { withAuth } from '@workos-inc/authkit-nextjs';
-import { getIgnoredUsers } from '@/app/dashboard/actions';
-import { DashboardHeader } from '@/components/dashboard-header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, UserX } from 'lucide-react';
-import Link from 'next/link';
-import { IgnoreUserButton } from '@/components/ignore-user-button';
+import { neonAuth } from "@neondatabase/auth/next/server";
+import { redirect } from "next/navigation";
+import { getIgnoredUsers } from "@/app/dashboard/actions";
+import { DashboardHeader } from "@/components/dashboard-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, UserX } from "lucide-react";
+import Link from "next/link";
+import { IgnoreUserButton } from "@/components/ignore-user-button";
 
 export default async function IgnoredUsersPage() {
-  const { user: currentUser } = await withAuth({ ensureSignedIn: true });
+  const { user: currentUser } = await neonAuth();
+  
+  if (!currentUser) {
+    redirect("/auth/sign-in");
+  }
+
   const ignoredUsers = await getIgnoredUsers();
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
     }).format(new Date(date));
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
+    <div className="min-h-screen bg-background font-sans">
       <main className="container mx-auto max-w-7xl px-4 py-8">
         <DashboardHeader user={currentUser} />
 
@@ -91,7 +97,7 @@ export default async function IgnoredUsersPage() {
                             <p className="italic mb-1">"{ignored.reason}"</p>
                           )}
                           <p>
-                            Ignored by {ignored.ignoredBy || 'Unknown'} on{' '}
+                            Ignored by {ignored.ignoredBy || "Unknown"} on{" "}
                             {formatDate(ignored.createdAt)}
                           </p>
                         </div>
@@ -124,4 +130,3 @@ export default async function IgnoredUsersPage() {
     </div>
   );
 }
-

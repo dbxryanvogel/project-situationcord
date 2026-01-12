@@ -31,7 +31,7 @@ Discord Server          Railway (Discord Bot)              Vercel (Next.js)
 - **Web App**: Next.js 16 (App Router), React 19, Tailwind CSS v4
 - **Discord Bot**: Discord.js v14
 - **Database**: Drizzle ORM with Neon PostgreSQL
-- **Auth**: WorkOS AuthKit
+- **Auth**: Neon Auth
 - **AI**: Vercel AI SDK with OpenAI
 - **Workflows**: Vercel Workflow DevKit for durable async processing
 
@@ -60,7 +60,7 @@ packages/
 - npm
 - A Discord bot token ([Discord Developer Portal](https://discord.com/developers/applications))
 - Neon PostgreSQL database ([neon.tech](https://neon.tech))
-- WorkOS account for auth ([workos.com](https://workos.com))
+- Neon Auth configured ([neon.com/docs/guides/neon-auth](https://neon.com/docs/guides/neon-auth))
 - OpenAI API key ([platform.openai.com](https://platform.openai.com))
 
 ### Installation
@@ -84,12 +84,9 @@ cd apps/discord-server && npm run dev # Discord bot
 ```bash
 # App URLs
 NEXT_PUBLIC_BASE_URL="http://localhost:3000"  # or production URL
-NEXT_PUBLIC_WORKOS_REDIRECT_URI="http://localhost:3000/auth/callback"
 
-# WorkOS Auth
-WORKOS_CLIENT_ID="client_..."
-WORKOS_API_KEY="sk_..."
-WORKOS_COOKIE_PASSWORD="<32+ character secure string>"
+# Neon Auth
+NEON_AUTH_BASE_URL="https://your-neon-auth-url.neon.tech"
 
 # Database
 DATABASE_URL="postgresql://..."
@@ -137,10 +134,7 @@ npm run db:studio
 2. Set root directory to `apps/nextjs-web`
 3. Add environment variables:
    - `NEXT_PUBLIC_BASE_URL` - Your Vercel deployment URL
-   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI` - `{BASE_URL}/auth/callback`
-   - `WORKOS_CLIENT_ID` - From WorkOS dashboard
-   - `WORKOS_API_KEY` - From WorkOS dashboard
-   - `WORKOS_COOKIE_PASSWORD` - 32+ character secure string
+   - `NEON_AUTH_BASE_URL` - Your Neon Auth server URL
    - `DATABASE_URL` - Neon PostgreSQL connection string
    - `OPENAI_API_KEY` - OpenAI API key
    - `CUSTOMER_IO_WEBHOOK_URL` - Customer.io webhook for high-severity alerts

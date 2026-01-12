@@ -1,13 +1,16 @@
-import { signOut } from '@workos-inc/authkit-nextjs';
+import { authServer } from '@/lib/auth-server';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { UserX } from 'lucide-react';
 import Link from 'next/link';
 
 interface DashboardHeaderProps {
   user: {
-    firstName?: string | null;
-    lastName?: string | null;
-    email?: string | null;
+    id: string;
+    name?: string | null;
+    email: string;
+    image?: string | null;
   };
   title?: string;
   subtitle?: string;
@@ -20,7 +23,9 @@ export function DashboardHeader({
   subtitle,
   ignoredCount = 0
 }: DashboardHeaderProps) {
-  const defaultSubtitle = `Welcome back${user.firstName ? `, ${user.firstName}` : ''}!`;
+  // Extract first name from full name
+  const firstName = user.name?.split(' ')[0];
+  const defaultSubtitle = `Welcome back${firstName ? `, ${firstName}` : ''}!`;
   
   return (
     <div className="mb-8 flex items-center justify-between">
@@ -38,6 +43,7 @@ export function DashboardHeader({
         )}
       </div>
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <Button asChild variant="outline" size="sm" className="gap-2 relative">
           <Link href="/dashboard/ignored">
             <UserX className="h-4 w-4" />
@@ -52,7 +58,8 @@ export function DashboardHeader({
         <form
           action={async () => {
             'use server';
-            await signOut();
+            await authServer.signOut();
+            redirect('/');
           }}
         >
           <Button type="submit" variant="default" size="sm">
@@ -63,4 +70,3 @@ export function DashboardHeader({
     </div>
   );
 }
-

@@ -1,12 +1,12 @@
-import { withAuth } from '@workos-inc/authkit-nextjs';
-import { notFound } from 'next/navigation';
-import { getUserInfo, getUserMessages, getUserMessageStats, checkIfUserIsIgnored } from '@/app/dashboard/actions';
-import { DashboardHeader } from '@/components/dashboard-header';
-import { UserMessageList } from '@/components/user-message-list';
-import { IgnoreUserButton } from '@/components/ignore-user-button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { neonAuth } from "@neondatabase/auth/next/server";
+import { redirect, notFound } from "next/navigation";
+import { getUserInfo, getUserMessages, getUserMessageStats, checkIfUserIsIgnored } from "@/app/dashboard/actions";
+import { DashboardHeader } from "@/components/dashboard-header";
+import { UserMessageList } from "@/components/user-message-list";
+import { IgnoreUserButton } from "@/components/ignore-user-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 interface UserPageProps {
   params: Promise<{
@@ -15,7 +15,12 @@ interface UserPageProps {
 }
 
 export default async function UserPage({ params }: UserPageProps) {
-  const { user: currentUser } = await withAuth({ ensureSignedIn: true });
+  const { user: currentUser } = await neonAuth();
+  
+  if (!currentUser) {
+    redirect("/auth/sign-in");
+  }
+
   const { id } = await params;
   
   const [userInfo, messages, stats, isIgnored] = await Promise.all([
@@ -30,15 +35,15 @@ export default async function UserPage({ params }: UserPageProps) {
   }
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(new Date(date));
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
+    <div className="min-h-screen font-sans bg-background">
       <main className="container mx-auto max-w-7xl px-4 py-8">
         <DashboardHeader user={currentUser} />
 
@@ -103,7 +108,7 @@ export default async function UserPage({ params }: UserPageProps) {
               <div>
                 <div className="text-sm font-medium">First Message</div>
                 <div className="text-xs text-muted-foreground">
-                  {stats?.firstMessage ? formatDate(stats.firstMessage) : 'N/A'}
+                  {stats?.firstMessage ? formatDate(stats.firstMessage) : "N/A"}
                 </div>
               </div>
             </div>
@@ -116,4 +121,3 @@ export default async function UserPage({ params }: UserPageProps) {
     </div>
   );
 }
-

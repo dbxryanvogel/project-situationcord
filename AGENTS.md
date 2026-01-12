@@ -12,7 +12,7 @@ Turborepo monorepo with a Discord bot + Next.js web application for monitoring D
 - Next.js 16 (App Router) with React 19, Tailwind CSS v4
 - Discord.js v14 for bot functionality
 - Drizzle ORM with Neon PostgreSQL
-- WorkOS AuthKit for authentication
+- Neon Auth for authentication
 - Vercel Workflow DevKit for durable workflows
 - Zod v4 for validation, Vercel AI SDK for AI features
 
@@ -79,24 +79,27 @@ import { db, discordMessages } from "@/lib/db";
 - shadcn/ui components in `components/ui/` directory
 
 ```typescript
+import { neonAuth } from "@neondatabase/auth/next/server";
+
 export default async function DashboardPage() {
-  const { user } = await withAuth({ ensureSignedIn: true });
+  const { user } = await neonAuth();
+  if (!user) redirect("/auth/sign-in");
   // ...
 }
 ```
 
 ### Server Actions
 
-- File-level `'use server'` directive; use `withAuth()` for authentication
+- File-level `'use server'` directive; use `neonAuth()` for authentication
 - Return `{ success: true, ... }` or throw errors
 - Located in `actions.ts` colocated with pages
 
 ```typescript
 "use server";
-import { withAuth } from "@workos-inc/authkit-nextjs";
+import { neonAuth } from "@neondatabase/auth/next/server";
 
 export async function addUserToIgnoreList(userId: string, reason?: string) {
-  const { user } = await withAuth();
+  const { user } = await neonAuth();
   if (!user) throw new Error("Unauthorized");
   return { success: true, id };
 }
@@ -132,12 +135,14 @@ try {
 
 ## Framework-Specific Rules
 
-### WorkOS AuthKit (from .cursor/rules/workos-authkit.mdc)
+### Neon Auth
 
-- Use `withAuth()` in Server Components and Actions
-- Use `authkitMiddleware()` with proper route exclusions
-- Always forward AuthKit headers in custom middleware
-- Handle auth callback at `/auth/callback/route.ts`
+- Use `neonAuth()` in Server Components and Actions to get session/user
+- Use `neonAuthMiddleware()` with `loginUrl` pointing to `/auth/sign-in`
+- Auth API handler at `/api/auth/[...path]/route.ts`
+- Auth views at `/auth/[path]/page.tsx` (sign-in, sign-up, etc.)
+- Use `authClient` for client-side auth operations
+- Use `authServer` for server-side auth operations (signOut, etc.)
 
 ### Workflow DevKit (from .cursor/rules/workflow-devkit.mdc)
 
@@ -182,8 +187,7 @@ packages/
 **nextjs-web (Vercel):**
 
 - `NEXT_PUBLIC_BASE_URL` - Deployment URL
-- `NEXT_PUBLIC_WORKOS_REDIRECT_URI` - Auth callback URL
-- `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, `WORKOS_COOKIE_PASSWORD`
+- `NEON_AUTH_BASE_URL` - Neon Auth server URL
 - `DATABASE_URL` (Neon PostgreSQL)
 - `OPENAI_API_KEY` (for AI features)
 - `CUSTOMER_IO_WEBHOOK_URL` (high-severity alerts)

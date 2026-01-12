@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="max-w-md">
         <CardHeader>
           <CardTitle>Message Not Found</CardTitle>

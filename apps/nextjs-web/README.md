@@ -2,29 +2,22 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Environment Setup
 
-### WorkOS AuthKit Setup
+### Neon Auth Setup
 
-This project uses WorkOS AuthKit for authentication. To get started:
+This project uses Neon Auth for authentication. To get started:
 
-1. Create a `.env.local` file in the `apps/nextjs-web` directory with the following variables:
+1. Create a `.env.local` file in the `apps/nextjs-web` directory with the following variable:
 
 ```bash
-WORKOS_API_KEY='your_api_key_here'
-WORKOS_CLIENT_ID='your_client_id_here'
-WORKOS_COOKIE_PASSWORD='your_secure_password_here' # Must be at least 32 characters
-NEXT_PUBLIC_WORKOS_REDIRECT_URI="http://localhost:3000/auth/callback"
+NEON_AUTH_BASE_URL='https://your-neon-auth-url.neon.tech'
 ```
 
-2. Generate a secure password for `WORKOS_COOKIE_PASSWORD`:
-```bash
-openssl rand -base64 24
-```
+2. Configure your Neon Auth server:
+   - Enable Email OTP authentication
+   - Configure Google OAuth provider
+   - Configure GitHub OAuth provider
 
-3. Configure your WorkOS Dashboard:
-   - Set the Redirect URI to: `http://localhost:3000/auth/callback`
-   - Configure your login endpoint (if needed)
-
-4. Get your API key and Client ID from the [WorkOS Dashboard](https://dashboard.workos.com/api-keys)
+For more information, see the [Neon Auth Documentation](https://neon.com/docs/guides/neon-auth).
 
 ### OpenAI API Setup
 
@@ -97,9 +90,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Route Protection
 
-- `/` - Public landing page
-- `/signin` - Redirects to WorkOS sign-in
-- `/auth/callback` - WorkOS callback handler (redirects to `/dashboard` after login)
+- `/` - Public landing page (redirects to dashboard if logged in)
+- `/auth/sign-in` - Sign in page
+- `/auth/sign-up` - Sign up page
+- `/auth/magic-link` - Magic link authentication
+- `/auth/forgot-password` - Password reset request
+- `/auth/callback` - OAuth callback handler
 - `/dashboard` - Protected dashboard page (requires authentication)
 - All other routes require authentication
 

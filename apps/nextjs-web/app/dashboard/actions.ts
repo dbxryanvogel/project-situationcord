@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { discordMessages, discordAuthors, messageAnalysis, ignoredUsers } from '@/lib/db';
 import { desc, eq, gte, sql, notInArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { withAuth } from '@workos-inc/authkit-nextjs';
+import { neonAuth } from '@neondatabase/auth/next/server';
 
 export async function getRecentMessages(limit: number = 50) {
   // First get list of ignored user IDs
@@ -161,7 +161,7 @@ export async function getUserMessageStats(userId: string) {
 // Ignore List Management Actions
 
 export async function addUserToIgnoreList(userId: string, reason?: string) {
-  const { user } = await withAuth();
+  const { user } = await neonAuth();
   
   if (!user) {
     throw new Error('Unauthorized');
@@ -185,7 +185,7 @@ export async function addUserToIgnoreList(userId: string, reason?: string) {
 }
 
 export async function removeUserFromIgnoreList(userId: string) {
-  const { user } = await withAuth();
+  const { user } = await neonAuth();
   
   if (!user) {
     throw new Error('Unauthorized');
@@ -380,4 +380,3 @@ export async function getSentimentData() {
     ];
   }
 }
-

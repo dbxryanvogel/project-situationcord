@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 @layer base {
   :root {
@@ -38,38 +41,42 @@
   }
 
   .dark {
-    /* Deep slate background */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 96%;
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 47% 13%;
-    --popover-foreground: 210 40% 96%;
-    /* Lighter teal for dark mode */
-    --primary: 173 58% 50%;
-    --primary-foreground: 222 47% 11%;
-    /* Dark slate secondary */
-    --secondary: 222 30% 18%;
-    --secondary-foreground: 210 40% 90%;
-    /* Muted dark tones */
-    --muted: 222 30% 18%;
-    --muted-foreground: 215 20% 55%;
-    /* Warm amber accent */
-    --accent: 38 92% 55%;
-    --accent-foreground: 222 47% 11%;
-    /* Bright red for dark mode */
+    /* Slate gray background #3a3a3a */
+    --background: 0 0% 10%;
+    /* Light gray text #E0E0E0 */
+    --foreground: 0 0% 88%;
+    /* Charcoal black cards #121212 */
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 89%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 89%;
+    /* Light cyan primary #A8DADC */
+    --primary: 181 41% 76%;
+    --primary-foreground: 0 0% 7%;
+    /* Dark gray secondary #444444 */
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 88%;
+    /* Muted grays */
+    --muted: 0 0% 15%;
+    /* Medium gray #B0B0B0 */
+    --muted-foreground: 0 0% 69%;
+    /* Soft pink accent #FFC1CC */
+    --accent: 349 100% 88%;
+    --accent-foreground: 0 0% 7%;
+    /* Destructive red */
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    /* Subtle dark borders */
-    --border: 222 30% 20%;
-    --input: 222 30% 20%;
-    --ring: 173 58% 50%;
-    /* Vibrant chart colors for dark */
-    --chart-1: 173 70% 55%;
-    --chart-2: 38 92% 60%;
-    --chart-3: 262 60% 60%;
-    --chart-4: 340 75% 60%;
-    --chart-5: 199 89% 55%;
+    /* Dark gray borders #444444 */
+    --border: 0 0% 27%;
+    --input: 0 0% 22%;
+    /* Lavender ring #B39CD0 */
+    --ring: 270 38% 71%;
+    /* Chart colors using palette */
+    --chart-1: 181 41% 76%;
+    --chart-2: 349 100% 88%;
+    --chart-3: 270 38% 71%;
+    --chart-4: 181 50% 60%;
+    --chart-5: 349 70% 70%;
   }
 }
 
@@ -105,4 +112,48 @@
   --color-ring: hsl(var(--ring));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+}
+
+:root {
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+.dark {
+  /* Charcoal black sidebar #121212 */
+  --sidebar: hsl(0 0% 7%);
+  --sidebar-foreground: hsl(0 0% 88%);
+  /* Light cyan primary #A8DADC */
+  --sidebar-primary: hsl(181 41% 76%);
+  --sidebar-primary-foreground: hsl(0 0% 7%);
+  /* Slightly lighter for hover #1a1a1a */
+  --sidebar-accent: hsl(0 0% 12%);
+  --sidebar-accent-foreground: hsl(0 0% 89%);
+  /* Border #444444 */
+  --sidebar-border: hsl(0 0% 27%);
+  /* Lavender ring #B39CD0 */
+  --sidebar-ring: hsl(270 38% 71%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

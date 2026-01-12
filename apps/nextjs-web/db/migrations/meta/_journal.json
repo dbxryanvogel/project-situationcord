@@ -22,6 +22,20 @@
       "when": 1762284454703,
       "tag": "0002_stale_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1768239506081,
+      "tag": "0003_woozy_sheva_callister",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1768253676143,
+      "tag": "0004_yielding_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

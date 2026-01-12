@@ -193,6 +193,114 @@ export const ignoredUsersRelations = relations(ignoredUsers, ({ one }) => ({
   }),
 }));
 
+// Bugs table
+export const bugs = pgTable(
+  'bugs',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    firstReportedAt: timestamp('first_reported_at').notNull(),
+    isLlmGenerated: boolean('is_llm_generated').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      titleIdx: index('bugs_title_idx').on(table.title),
+      firstReportedAtIdx: index('bugs_first_reported_at_idx').on(table.firstReportedAt),
+    };
+  }
+);
+
+// Bug Reports table (individual reports referencing a bug)
+export const bugReports = pgTable(
+  'bug_reports',
+  {
+    id: text('id').primaryKey(),
+    bugId: text('bug_id')
+      .notNull()
+      .references(() => bugs.id, { onDelete: 'cascade' }),
+    discordLink: text('discord_link').notNull(),
+    reportedAt: timestamp('reported_at').notNull(),
+    createdBy: text('created_by'),
+    isLlmGenerated: boolean('is_llm_generated').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      bugIdIdx: index('bug_reports_bug_id_idx').on(table.bugId),
+      reportedAtIdx: index('bug_reports_reported_at_idx').on(table.reportedAt),
+    };
+  }
+);
+
+// Bug relations
+export const bugsRelations = relations(bugs, ({ many }) => ({
+  reports: many(bugReports),
+}));
+
+export const bugReportsRelations = relations(bugReports, ({ one }) => ({
+  bug: one(bugs, {
+    fields: [bugReports.bugId],
+    references: [bugs.id],
+  }),
+}));
+
+// Feature Requests table
+export const featureRequests = pgTable(
+  'feature_requests',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    firstRequestedAt: timestamp('first_requested_at').notNull(),
+    isLlmGenerated: boolean('is_llm_generated').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      titleIdx: index('feature_requests_title_idx').on(table.title),
+      firstRequestedAtIdx: index('feature_requests_first_requested_at_idx').on(table.firstRequestedAt),
+    };
+  }
+);
+
+// Feature Request Reports table (individual reports referencing a feature request)
+export const featureRequestReports = pgTable(
+  'feature_request_reports',
+  {
+    id: text('id').primaryKey(),
+    featureId: text('feature_id')
+      .notNull()
+      .references(() => featureRequests.id, { onDelete: 'cascade' }),
+    discordLink: text('discord_link').notNull(),
+    requestedAt: timestamp('requested_at').notNull(),
+    createdBy: text('created_by'),
+    isLlmGenerated: boolean('is_llm_generated').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      featureIdIdx: index('feature_request_reports_feature_id_idx').on(table.featureId),
+      requestedAtIdx: index('feature_request_reports_requested_at_idx').on(table.requestedAt),
+    };
+  }
+);
+
+// Feature Request relations
+export const featureRequestsRelations = relations(featureRequests, ({ many }) => ({
+  reports: many(featureRequestReports),
+}));
+
+export const featureRequestReportsRelations = relations(featureRequestReports, ({ one }) => ({
+  featureRequest: one(featureRequests, {
+    fields: [featureRequestReports.featureId],
+    references: [featureRequests.id],
+  }),
+}));
+
 export type DiscordAuthor = typeof discordAuthors.$inferSelect;
 export type NewDiscordAuthor = typeof discordAuthors.$inferInsert;
 
@@ -204,3 +312,15 @@ export type NewMessageAnalysis = typeof messageAnalysis.$inferInsert;
 
 export type IgnoredUser = typeof ignoredUsers.$inferSelect;
 export type NewIgnoredUser = typeof ignoredUsers.$inferInsert;
+
+export type Bug = typeof bugs.$inferSelect;
+export type NewBug = typeof bugs.$inferInsert;
+
+export type BugReport = typeof bugReports.$inferSelect;
+export type NewBugReport = typeof bugReports.$inferInsert;
+
+export type FeatureRequest = typeof featureRequests.$inferSelect;
+export type NewFeatureRequest = typeof featureRequests.$inferInsert;
+
+export type FeatureRequestReport = typeof featureRequestReports.$inferSelect;
+export type NewFeatureRequestReport = typeof featureRequestReports.$inferInsert;

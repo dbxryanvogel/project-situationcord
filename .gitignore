@@ -35,5 +35,3 @@ yarn-error.log*
 
 # Bun
 .bun
-
-node_modules/

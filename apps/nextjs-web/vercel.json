@@ -1,5 +1,5 @@
 {
-  "installCommand": "bun install --cwd=../..",
-  "buildCommand": "bun run build"
+  "installCommand": "npm install --prefix=../.. --legacy-peer-deps",
+  "buildCommand": "npm run build"
 }
 

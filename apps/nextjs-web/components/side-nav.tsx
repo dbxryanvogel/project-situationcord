@@ -9,6 +9,7 @@ import {
   Lightbulb, 
   Bug, 
   StickyNote, 
+  UserX,
   ChevronLeft,
   ChevronRight,
   LogOut
@@ -44,6 +45,11 @@ const navItems: NavItem[] = [
     title: "Notes",
     href: "/dashboard/notes",
     icon: StickyNote,
+  },
+  {
+    title: "Ignored Users",
+    href: "/dashboard/ignored",
+    icon: UserX,
   },
 ];
 
